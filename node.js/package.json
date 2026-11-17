@@ -1,0 +1,26 @@
+{
+  "name": "node",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "vercel-build": "node --check api/index.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "Tienda online ElpibedeloscalcosShop con checkout de invitados y administración Supabase",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.118.0",
+    "bcryptjs": "^3.0.3",
+    "connect-pg-simple": "^10.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.7.1",
+    "express-session": "^1.19.0",
+    "nodemon": "^3.1.10",
+    "pg": "^8.16.3",
+    "nodemailer": "^7.0.3"
+  }
+}

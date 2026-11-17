@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administración | ElpibedeloscalcosShop</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 25px;
+            background: #111;
+            color: #fff;
+            font-family: Arial, sans-serif;
+        }
+        main { max-width: 1100px; margin: auto; }
+        h1 span { color: #e32636; }
+        .tabs { display:flex; flex-wrap:wrap; gap:8px; margin:20px 0; }
+        .tabs button { margin:0; }
+        .tabs button[aria-selected="true"] { background:#fff; color:#111; }
+        .vista-admin[hidden] { display:none; }
+        .buscador-admin { max-width:420px; margin:8px 0 16px; }
+        .fila-categoria { display:flex; justify-content:space-between; gap:12px; align-items:center; border-top:1px solid #444; padding:12px 0; }
+        .panel {
+            background: #1c1c1c;
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        label { display: block; margin: 12px 0 6px; }
+        input, select {
+            width: 100%;
+            padding: 11px;
+            background: #101010;
+            color: white;
+            border: 1px solid #444;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 14px;
+            margin: 8px 5px 0 0;
+            border: 0;
+            border-radius: 5px;
+            background: #e32636;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover { background: #bd1928; }
+        button:disabled { opacity: .6; cursor: not-allowed; }
+        .secundario { background: #444; }
+        .producto, .pedido {
+            border-top: 1px solid #444;
+            padding: 15px 0;
+        }
+        #mensaje { line-height: 1.5; }
+        a { color: #ff6875; }
+        .rejilla-pedidos {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 14px;
+        }
+        .tarjeta-pedido {
+            border: 1px solid #444;
+            border-left: 4px solid #e32636;
+            border-radius: 8px;
+            padding: 15px;
+            background: #151515;
+            min-width: 0;
+        }
+        .tarjeta-pedido h3 { margin: 0 0 10px; }
+        .estado { color: #ff6875; font-weight: bold; }
+        .detalle-pedido {
+            margin-top: 12px;
+            padding-top: 10px;
+            border-top: 1px solid #444;
+            color: #ddd;
+        }
+        .detalle-pedido ul { padding-left: 20px; }
+        .acciones-pedido { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+        .acciones-pedido button { margin-right: 0; }
+        .nota { color: #bbb; font-size: 14px; }
+        @media (max-width: 600px) {
+            body { padding: 12px; }
+            .panel { padding: 15px; }
+            .tabs { display:grid; grid-template-columns:1fr 1fr; }
+            .tabs button { width:100%; margin:0; }
+            input, select, button { max-width:100%; }
+            .acciones-pedido button { flex:1 1 100%; }
+        }
+    </style>
+</head>
+<body>
+<main>
+    <h1>ElpibedeloscalcosShop <span>/ Administración</span></h1>
+    <p><a href="/">Volver a la tienda</a></p>
+
+    <section class="panel">
+        <h2>Acceso al panel</h2>
+        <p id="mensaje" role="status" aria-live="polite">Comprobando permisos...</p>
+        <form id="formLoginAdmin" hidden>
+            <label for="emailAdmin">Correo de administrador</label>
+            <input id="emailAdmin" type="email" autocomplete="username" required>
+            <label for="passwordAdmin">Contraseña</label>
+            <input id="passwordAdmin" type="password" autocomplete="current-password" required>
+            <button type="submit">Ingresar</button>
+        </form>
+        <button id="salir" class="secundario" hidden>Cerrar sesión</button>
+    </section>
+
+    <section id="zonaAdmin" hidden>
+        <nav class="tabs" aria-label="Secciones de administración">
+            <button type="button" data-vista="vistaPedidos" aria-selected="true">Pedidos</button>
+            <button type="button" data-vista="vistaAgregar" aria-selected="false">Agregar producto</button>
+            <button type="button" data-vista="vistaProductos" aria-selected="false">Productos existentes</button>
+            <button type="button" data-vista="vistaCategorias" aria-selected="false">Categorías</button>
+        </nav>
+        <div id="vistaPedidos" class="vista-admin">
+        <section class="panel">
+            <h2>Pedidos recibidos</h2>
+            <button type="button" id="actualizarPedidos" class="secundario">Actualizar pedidos</button>
+            <p id="mensajePedidos" role="status" aria-live="polite"></p>
+            <div id="listaPedidos" class="rejilla-pedidos"></div>
+        </section>
+
+        </div>
+        <div id="vistaAgregar" class="vista-admin" hidden>
+        <form id="formProducto" class="panel">
+            <h2 id="tituloForm">Agregar producto</h2>
+            <input type="hidden" id="id">
+
+            <label for="nombre">Nombre</label>
+            <input id="nombre" maxlength="100" required>
+
+            <label for="descripcion">Descripción</label>
+            <input id="descripcion" maxlength="255">
+
+            <label for="precio">Precio</label>
+            <input id="precio" type="number" min="0" step="0.01" required>
+
+            <label for="imagen">Ruta de imagen</label>
+            <input id="imagen" maxlength="255" placeholder="/imagenes/calco.jpg">
+
+            <label for="categoriaProducto">Categoría</label>
+            <select id="categoriaProducto"><option value="">Sin categoría</option></select>
+
+            <label for="stock">Stock</label>
+            <input id="stock" type="number" min="0" step="1" value="0" required>
+
+            <button type="submit">Guardar producto</button>
+            <button type="button" class="secundario" id="cancelar">Cancelar edición</button>
+        </form>
+
+        </div>
+        <div id="vistaProductos" class="vista-admin" hidden>
+        <section class="panel">
+            <h2>Productos existentes</h2>
+            <label for="buscarProductoAdmin">Buscar producto</label>
+            <input class="buscador-admin" id="buscarProductoAdmin" type="search" placeholder="Nombre o descripción" autocomplete="off">
+            <div id="lista"></div>
+        </section>
+        </div>
+        <div id="vistaCategorias" class="vista-admin" hidden>
+        <section class="panel">
+            <h2>Administrar categorías</h2>
+            <form id="formCategoria">
+                <label for="nombreCategoria">Nombre de la categoría</label>
+                <input id="nombreCategoria" maxlength="60" required>
+                <button type="submit">Agregar categoría</button>
+            </form>
+            <p id="mensajeCategorias" role="status" aria-live="polite"></p>
+            <div id="listaCategorias"></div>
+        </section>
+        </div>
+    </section>
+</main>
+
+<script>
+const mensaje = document.getElementById('mensaje');
+const zonaAdmin = document.getElementById('zonaAdmin');
+const lista = document.getElementById('lista');
+const form = document.getElementById('formProducto');
+const listaPedidos = document.getElementById('listaPedidos');
+const mensajePedidos = document.getElementById('mensajePedidos');
+const formLoginAdmin = document.getElementById('formLoginAdmin');
+
+const estadosPedido = [
+    'pendiente',
+    'confirmado',
+    'entregado',
+    'cancelado'
+];
+
+let tokenCSRF = null;
+let productosAdmin = [];
+let categoriasAdmin = [];
+
+async function obtenerTokenCSRF() {
+    const respuesta = await fetch('/api/auth/csrf', {
+        credentials: 'same-origin',
+        cache: 'no-store'
+    });
+    if (!respuesta.ok) throw new Error('No se pudo iniciar la protección de seguridad.');
+    const datos = await respuesta.json();
+    tokenCSRF = datos.csrfToken;
+}
+
+async function api(url, opciones = {}) {
+    const metodo = (opciones.method || 'GET').toUpperCase();
+    const modificaDatos = !['GET', 'HEAD', 'OPTIONS'].includes(metodo);
+
+    if (modificaDatos && !tokenCSRF) await obtenerTokenCSRF();
+
+    const respuesta = await fetch(url, {
+        credentials: 'same-origin',
+        ...opciones,
+        headers: {
+            ...(opciones.body ? { 'Content-Type': 'application/json' } : {}),
+            ...(modificaDatos ? { 'X-CSRF-Token': tokenCSRF } : {}),
+            ...(opciones.headers || {})
+        }
+    });
+
+    const contenido = await respuesta.text();
+    let datos = {};
+
+    if (contenido) {
+        try {
+            datos = JSON.parse(contenido);
+        } catch {
+            throw new Error(`El servidor devolvió una respuesta inesperada (${respuesta.status}). Revisá la terminal de VS Code.`);
+        }
+    }
+
+    if (!respuesta.ok) {
+        throw new Error(datos.mensaje || 'Ocurrió un error.');
+    }
+
+    return datos;
+}
+
+function precioARS(valor) {
+    return Number(valor || 0).toLocaleString('es-AR', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2
+    });
+}
+
+function fechaLegible(valor) {
+    if (!valor) return 'Sin fecha';
+    const fecha = new Date(valor);
+    if (Number.isNaN(fecha.getTime())) return String(valor);
+    return fecha.toLocaleString('es-AR');
+}
+
+function numeroWhatsApp(telefono) {
+    let numero = String(telefono || '').replace(/\D/g, '');
+
+    // WhatsApp necesita el número internacional sin el signo +.
+    if (numero.startsWith('00')) numero = numero.slice(2);
+    if (numero.startsWith('0')) numero = numero.slice(1);
+
+    if (numero.startsWith('549')) return numero;
+    if (numero.startsWith('54')) return '549' + numero.slice(2);
+
+    // Para números argentinos ingresados con característica local.
+    return '549' + numero;
+}
+
+function abrirWhatsAppConfirmacion(pedido) {
+    const telefono = numeroWhatsApp(pedido.telefono);
+
+    if (telefono.length < 11) {
+        mensajePedidos.textContent = 'El teléfono del pedido no parece válido. Revisá el número antes de abrir WhatsApp.';
+        return;
+    }
+
+    const texto = `¡Hola ${pedido.cliente_nombre}! Te confirmamos tu pedido #${pedido.id} de ElpibedeloscalcosShop. El total es $${precioARS(pedido.total)}. Ahora coordinamos por este medio el envío o retiro. ¡Gracias por tu compra!`;
+    const url = `https://wa.me/${telefono}?text=${encodeURIComponent(texto)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+}
+
+async function iniciar() {
+    try {
+        const sesion = await api('/api/auth/actual');
+
+        if (!sesion.usuario || sesion.usuario.rol !== 'admin') {
+            mensaje.textContent = 'Tu cuenta no tiene permisos de administrador.';
+            return;
+        }
+
+        mensaje.textContent = 'Sesión de administrador activa.';
+        document.getElementById('salir').hidden = false;
+        zonaAdmin.hidden = false;
+
+        await Promise.all([cargarCategorias(), cargarProductos(), cargarPedidos()]);
+    } catch (error) {
+        mensaje.textContent = 'Iniciá sesión con tu cuenta administradora de Supabase.';
+        formLoginAdmin.hidden = false;
+    }
+}
+
+formLoginAdmin.addEventListener('submit', async evento => {
+    evento.preventDefault();
+    mensaje.textContent = 'Verificando credenciales...';
+    try {
+        await obtenerTokenCSRF();
+        const respuesta = await fetch('/api/auth/login', {
+            method: 'POST', credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': tokenCSRF },
+            body: JSON.stringify({
+                email: document.getElementById('emailAdmin').value.trim(),
+                password: document.getElementById('passwordAdmin').value
+            })
+        });
+        const datos = await respuesta.json();
+        if (!respuesta.ok) throw new Error(datos.mensaje || 'No se pudo iniciar sesión.');
+        await obtenerTokenCSRF(); // El login regenera la sesión y también el token CSRF.
+        if (datos.usuario?.rol !== 'admin') {
+            await fetch('/api/auth/logout', { method:'POST', credentials:'same-origin', headers:{'X-CSRF-Token':tokenCSRF} });
+            throw new Error('Esta cuenta no tiene permisos de administrador.');
+        }
+        formLoginAdmin.hidden = true;
+        await iniciar();
+    } catch (error) { mensaje.textContent = error.message; }
+});
+
+async function cargarProductos() {
+    try {
+        productosAdmin = await api('/api/admin/productos');
+        dibujarProductosAdmin();
+
+    } catch (error) {
+        mensaje.textContent = error.message;
+    }
+}
+
+function dibujarProductosAdmin() {
+    const busqueda = document.getElementById('buscarProductoAdmin').value.trim().toLocaleLowerCase('es');
+    const productos = productosAdmin.filter(p => `${p.nombre || ''} ${p.descripcion || ''}`.toLocaleLowerCase('es').includes(busqueda));
+    lista.replaceChildren();
+    if (!productos.length) {
+        lista.textContent = 'No se encontraron productos.';
+        return;
+    }
+    productos.forEach(p => {
+            const articulo = document.createElement('article');
+            articulo.className = 'producto';
+
+            const titulo = document.createElement('h3');
+            titulo.textContent = p.nombre;
+
+            const detalle = document.createElement('p');
+            detalle.textContent = `Precio: $${precioARS(p.precio)} | Stock: ${p.stock}`;
+
+            const editar = document.createElement('button');
+            editar.textContent = 'Editar';
+            editar.addEventListener('click', () => editarProducto(p));
+
+            const eliminar = document.createElement('button');
+            eliminar.textContent = 'Eliminar';
+            eliminar.className = 'secundario';
+            eliminar.addEventListener('click', () => eliminarProducto(p.id));
+
+            articulo.append(titulo, detalle, editar, eliminar);
+            lista.appendChild(articulo);
+        });
+}
+
+async function cargarPedidos() {
+    mensajePedidos.textContent = 'Cargando pedidos...';
+    listaPedidos.replaceChildren();
+
+    try {
+        const pedidos = await api('/api/admin/pedidos');
+
+        if (!pedidos.length) {
+            mensajePedidos.textContent = 'Todavía no hay pedidos registrados.';
+            return;
+        }
+
+        mensajePedidos.textContent = `Pedidos registrados: ${pedidos.length}`;
+
+        pedidos.forEach(pedido => {
+            const tarjeta = document.createElement('article');
+            tarjeta.className = 'tarjeta-pedido';
+
+            const titulo = document.createElement('h3');
+            titulo.textContent = `Pedido #${pedido.id}`;
+
+            const cliente = document.createElement('p');
+            cliente.textContent = `Cliente: ${pedido.cliente_nombre}`;
+
+            const filaCopiable = (etiqueta, valor) => {
+                const fila = document.createElement('div');
+                fila.style.cssText = 'display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0';
+                const texto = document.createElement('span');
+                texto.textContent = `${etiqueta}: ${valor || '—'}`;
+                const copiar = document.createElement('button');
+                copiar.type = 'button'; copiar.className = 'secundario'; copiar.textContent = 'Copiar';
+                copiar.disabled = !valor;
+                copiar.addEventListener('click', async () => {
+                    try { await navigator.clipboard.writeText(String(valor)); copiar.textContent = 'Copiado'; setTimeout(() => copiar.textContent = 'Copiar', 1400); }
+                    catch { texto.textContent = `${etiqueta}: ${valor} (no se pudo copiar automáticamente)`; }
+                });
+                fila.append(texto, copiar); return fila;
+            };
+            const telefono = filaCopiable('WhatsApp', pedido.telefono);
+            const calle = filaCopiable('Calle y altura', pedido.domicilio);
+            const localidad = filaCopiable('Localidad', pedido.localidad);
+
+            const fecha = document.createElement('p');
+            fecha.textContent = `Fecha: ${fechaLegible(pedido.fecha)}`;
+
+            const total = document.createElement('p');
+            total.textContent = `Total: $${precioARS(pedido.total)}`;
+
+            const estado = document.createElement('p');
+            estado.className = 'estado';
+            estado.textContent = `Estado actual: ${pedido.estado}`;
+
+            const selector = document.createElement('select');
+            selector.setAttribute('aria-label', `Estado del pedido ${pedido.id}`);
+
+            estadosPedido.forEach(valor => {
+                const opcion = document.createElement('option');
+                opcion.value = valor;
+                opcion.textContent = valor;
+                opcion.selected = valor === pedido.estado;
+                selector.appendChild(opcion);
+            });
+
+            const guardarEstado = document.createElement('button');
+            guardarEstado.textContent = 'Guardar estado';
+            guardarEstado.addEventListener('click', async () => {
+                guardarEstado.disabled = true;
+                try {
+                    const resultado = await api(`/api/admin/pedidos/${pedido.id}/estado`, {
+                        method: 'PUT',
+                        body: JSON.stringify({ estado: selector.value })
+                    });
+                    mensajePedidos.textContent = resultado.mensaje;
+                    await cargarPedidos();
+                } catch (error) {
+                    mensajePedidos.textContent = error.message;
+                } finally {
+                    guardarEstado.disabled = false;
+                }
+            });
+
+            const verDetalle = document.createElement('button');
+            verDetalle.className = 'secundario';
+            verDetalle.textContent = 'Ver productos';
+
+            const detalle = document.createElement('div');
+            detalle.className = 'detalle-pedido';
+            detalle.hidden = true;
+
+            verDetalle.addEventListener('click', async () => {
+                if (!detalle.hidden) {
+                    detalle.hidden = true;
+                    verDetalle.textContent = 'Ver productos';
+                    return;
+                }
+
+                detalle.hidden = false;
+                verDetalle.textContent = 'Ocultar productos';
+
+                if (detalle.dataset.cargado === 'si') return;
+
+                detalle.textContent = 'Cargando detalle...';
+                try {
+                    const resultado = await api(`/api/admin/pedidos/${pedido.id}`);
+                    detalle.replaceChildren();
+
+                    const listaDetalle = document.createElement('ul');
+                    resultado.productos.forEach(item => {
+                        const li = document.createElement('li');
+                        li.textContent = `${item.nombre_producto} × ${item.cantidad} — $${precioARS(item.subtotal)}`;
+                        listaDetalle.appendChild(li);
+                    });
+
+                    detalle.appendChild(listaDetalle);
+                    detalle.dataset.cargado = 'si';
+                } catch (error) {
+                    detalle.textContent = error.message;
+                }
+            });
+
+            const acciones = document.createElement('div');
+            acciones.className = 'acciones-pedido';
+            acciones.append(guardarEstado, verDetalle);
+
+            if (pedido.estado === 'confirmado') {
+                const confirmarWhatsApp = document.createElement('button');
+                confirmarWhatsApp.textContent = 'Enviar confirmación por WhatsApp';
+                confirmarWhatsApp.className = 'secundario';
+                confirmarWhatsApp.addEventListener('click', () => {
+                    abrirWhatsAppConfirmacion(pedido);
+                });
+                acciones.appendChild(confirmarWhatsApp);
+            }
+
+            tarjeta.append(titulo, cliente, telefono, calle, localidad, fecha, total, estado, selector, acciones, detalle);
+            listaPedidos.appendChild(tarjeta);
+        });
+    } catch (error) {
+        mensajePedidos.textContent = error.message;
+    }
+}
+
+function editarProducto(p) {
+    document.getElementById('id').value = p.id;
+    document.getElementById('nombre').value = p.nombre;
+    document.getElementById('descripcion').value = p.descripcion || '';
+    document.getElementById('precio').value = p.precio;
+    document.getElementById('imagen').value = p.imagen || '';
+    document.getElementById('stock').value = p.stock;
+    document.getElementById('categoriaProducto').value = p.categoria_id == null ? '' : String(p.categoria_id);
+    cambiarVista('vistaAgregar');
+    document.getElementById('tituloForm').textContent = 'Editar producto';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function limpiarFormulario() {
+    form.reset();
+    document.getElementById('id').value = '';
+    document.getElementById('tituloForm').textContent = 'Agregar producto';
+    document.getElementById('stock').value = 0;
+}
+
+document.getElementById('cancelar').addEventListener('click', limpiarFormulario);
+
+form.addEventListener('submit', async evento => {
+    evento.preventDefault();
+
+    const id = document.getElementById('id').value;
+    const datos = {
+        nombre: document.getElementById('nombre').value.trim(),
+        descripcion: document.getElementById('descripcion').value.trim(),
+        precio: document.getElementById('precio').value,
+        imagen: document.getElementById('imagen').value.trim(),
+        stock: document.getElementById('stock').value,
+        categoria_id: document.getElementById('categoriaProducto').value || null
+    };
+
+    try {
+        const resultado = await api(
+            id ? `/api/admin/productos/${id}` : '/api/admin/productos',
+            {
+                method: id ? 'PUT' : 'POST',
+                body: JSON.stringify(datos)
+            }
+        );
+
+        mensaje.textContent = resultado.mensaje;
+        limpiarFormulario();
+        await cargarProductos();
+    } catch (error) {
+        mensaje.textContent = error.message;
+    }
+});
+
+async function eliminarProducto(id) {
+    if (!confirm('¿Seguro que querés eliminar este producto?')) return;
+
+    try {
+        const resultado = await api(`/api/admin/productos/${id}`, {
+            method: 'DELETE'
+        });
+
+        mensaje.textContent = resultado.mensaje;
+        await cargarProductos();
+    } catch (error) {
+        mensaje.textContent = error.message;
+    }
+}
+
+
+async function cargarCategorias() {
+    try {
+        categoriasAdmin = await api('/api/admin/categorias');
+        const select = document.getElementById('categoriaProducto');
+        const valorActual = select.value;
+        select.replaceChildren(new Option('Sin categoría', ''));
+        categoriasAdmin.forEach(c => select.add(new Option(c.nombre, String(c.id))));
+        select.value = valorActual;
+        const contenedor = document.getElementById('listaCategorias');
+        contenedor.replaceChildren();
+        categoriasAdmin.forEach(c => {
+            const fila = document.createElement('div');
+            fila.className = 'fila-categoria';
+            const nombre = document.createElement('strong');
+            nombre.textContent = `${c.nombre} (${c.cantidad_productos || 0} productos)`;
+            const acciones = document.createElement('div');
+            const editar = document.createElement('button');
+            editar.textContent = 'Editar';
+            editar.addEventListener('click', async () => {
+                const nuevo = prompt('Nuevo nombre de la categoría:', c.nombre);
+                if (nuevo === null || !nuevo.trim()) return;
+                try { await api(`/api/admin/categorias/${c.id}`, { method:'PUT', body:JSON.stringify({nombre:nuevo.trim()}) }); await cargarCategorias(); }
+                catch(e) { document.getElementById('mensajeCategorias').textContent = e.message; }
+            });
+            const eliminar = document.createElement('button');
+            eliminar.textContent = 'Eliminar'; eliminar.className = 'secundario';
+            eliminar.addEventListener('click', async () => {
+                if (!confirm(`¿Eliminar la categoría "${c.nombre}"? Los productos no se borrarán.`)) return;
+                try { await api(`/api/admin/categorias/${c.id}`, {method:'DELETE'}); await cargarCategorias(); await cargarProductos(); }
+                catch(e) { document.getElementById('mensajeCategorias').textContent = e.message; }
+            });
+            acciones.append(editar, eliminar); fila.append(nombre, acciones); contenedor.appendChild(fila);
+        });
+    } catch (error) { document.getElementById('mensajeCategorias').textContent = error.message; }
+}
+
+document.getElementById('formCategoria').addEventListener('submit', async e => {
+    e.preventDefault();
+    const nombre = document.getElementById('nombreCategoria').value.trim();
+    try {
+        const resultado = await api('/api/admin/categorias', {method:'POST', body:JSON.stringify({nombre})});
+        document.getElementById('mensajeCategorias').textContent = resultado.mensaje;
+        e.target.reset(); await cargarCategorias();
+    } catch(error) { document.getElementById('mensajeCategorias').textContent = error.message; }
+});
+
+function cambiarVista(id) {
+    document.querySelectorAll('.vista-admin').forEach(v => v.hidden = v.id !== id);
+    document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.vista === id)));
+}
+document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => cambiarVista(b.dataset.vista)));
+document.getElementById('buscarProductoAdmin').addEventListener('input', dibujarProductosAdmin);
+
+document.getElementById('actualizarPedidos').addEventListener('click', cargarPedidos);
+
+document.getElementById('salir').addEventListener('click', async () => {
+    try {
+        await api('/api/auth/logout', { method: 'POST' });
+        window.location.href = '/admin.html';
+    } catch (error) {
+        mensaje.textContent = error.message;
+    }
+});
+
+iniciar();
+</script>
+</body>
+</html>

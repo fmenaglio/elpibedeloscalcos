@@ -1,0 +1,15 @@
+const express = require('express');
+const router = express.Router();
+const crypto = require('crypto');
+const c = require('../controllers/authController');
+router.get('/csrf', (req,res) => { if (!req.session.csrfToken) req.session.csrfToken = crypto.randomBytes(32).toString('hex'); req.session.save(e => e ? res.status(500).json({mensaje:'No se pudo preparar la sesión segura.'}) : res.json({csrfToken:req.session.csrfToken})); });
+router.post('/registro', c.registrar);
+router.post('/verificar-registro', c.verificarRegistro);
+router.post('/login', c.login);
+router.get('/actual', c.actual);
+router.put('/perfil', c.actualizarPerfil);
+router.post('/recuperar', c.solicitarRecuperacion);
+router.post('/iniciar-cambio-password', c.iniciarCambioPassword);
+router.post('/nueva-password', c.cambiarPassword);
+router.post('/logout', c.logout);
+module.exports = router;
